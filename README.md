@@ -19,11 +19,18 @@ The skill works through 6 steps in order:
 
 ## Installation
 
-Clone or download this repository, then run:
+**Option 1 — One-line install:**
 
 ```bash
+mkdir -p ~/.claude/skills/analytics && curl -o ~/.claude/skills/analytics/SKILL.md https://raw.githubusercontent.com/IdanRedTLV/analytics-skill/main/.claude/skills/analytics/SKILL.md
+```
+
+**Option 2 — Clone the repo:**
+
+```bash
+git clone https://github.com/IdanRedTLV/analytics-skill.git
 mkdir -p ~/.claude/skills/analytics
-cp .claude/skills/analytics/SKILL.md ~/.claude/skills/analytics/SKILL.md
+cp analytics-skill/.claude/skills/analytics/SKILL.md ~/.claude/skills/analytics/SKILL.md
 ```
 
 ---
