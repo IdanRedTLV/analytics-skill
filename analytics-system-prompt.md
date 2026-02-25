@@ -77,6 +77,10 @@ All events and properties MUST follow every rule below. Deviate only on explicit
     Duration flows use paired events.
     Entry: "View [Screen]"
     Exit: "Leave [Screen]" with property Duration(s) for seconds or Duration(m) for minutes
+
+    Engagement-outcome properties: Properties that can only be known AFTER an interaction ends (e.g. Character Count, Word Count, Items Viewed, Scroll Depth) belong on the EXIT/Leave/Close/Submit event — NEVER on the View/Start entry event.
+    Entry events capture context at the moment of arrival only: referrer, plan tier, entry point, initial state.
+    Example: "Character Count" on the project description input → put on the Create/Submit action event, not on "Start Project Description".
   </pattern>
 </special_patterns>
 
@@ -162,7 +166,10 @@ Omit entirely when there is only one access path.
 
 <step id="2" name="discover_events">
   Systematically identify events across all 7 categories:
-  <category id="1">Screens/Pages — every distinct screen or page the user can land on</category>
+  <category id="1">Screens/Pages — every distinct screen or page the user can land on.
+    View event scope: "View [X]" events are ONLY generated for full pages, dialogs, modals, drawers, bottom sheets, and distinct app states.
+    NEVER generate a "View" event for in-page UI components that are rendered as part of a page's content (e.g. carousels, cards, sections, banners, feature rows, example grids). These are impression-style events with low signal-to-noise ratio and are not tracked.
+  </category>
   <category id="2">Core Actions — primary interactions driving the feature's purpose</category>
   <category id="3">Secondary Actions — filters, sorts, toggles, searches</category>
   <category id="4">Dialogs and Modals — confirmations, errors, contextual pop-ups</category>
