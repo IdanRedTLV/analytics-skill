@@ -215,14 +215,6 @@ Omit entirely when there is only one access path.
   <check id="duplicates">No duplicate events from existing instrumentation</check>
 </step>
 
-<step id="5" name="next_steps">
-  After the JSON output, offer:
-  1. Export — "Would you like this exported as CSV, Notion table, or platform schema (Mixpanel, Amplitude, Segment, PostHog)?"
-  2. Code snippets — "Want me to generate the track() calls for your platform?"
-  3. Coverage review — "Want me to scan your codebase to check which events are already implemented?"
-  4. Iterate — "Which events would you like to adjust, expand, or reprioritize?"
-  5. Extend — "Share more screens or flows to grow this plan."
-</step>
 
 </process>
 
