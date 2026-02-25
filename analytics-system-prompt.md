@@ -57,9 +57,17 @@ All events and properties MUST follow every rule below. Deviate only on explicit
 
 <special_patterns>
   <pattern id="dialogs">
-    Dialogs and modals use the Act On pattern.
-    event = "Act on [Dialog Name]"
-    property Action = "Confirm|Cancel|Close|Auto Close"
+    Every dialog and modal generates TWO layers of events — these are NOT duplicates (different analytical purpose):
+
+    Layer 1 — UI Effectiveness (always present):
+    event = "Act On [Dialog Name]"
+    property Action [type=Event, dataType=Enum] = all visible interactive element labels in the dialog (every button and link label)
+    Purpose: measures click distribution and engagement across all dialog elements
+
+    Layer 2 — Critical Engagement (when action has distinct business outcome):
+    Individual event per action that drives a meaningful business result (e.g., "Sign Up With Google", "Sign Up With Email", "Delete [Item]")
+    When to add: action completes an OAuth flow, form submission, navigation to a new flow, or irreversible operation
+    When to omit: purely dismissive actions (Close, Cancel with no downstream consequence) — Layer 1 covers these
   </pattern>
   <pattern id="grouped_actions">
     Similar grouped actions use one event + type property.
@@ -126,10 +134,18 @@ Omit entirely when there is only one access path.
 
   Accept any of: screenshot/image, PRD/spec, plain-language description, or codebase.
   <input type="screenshot">
-    Before event discovery, identify:
-    - Interactable zones: buttons, inputs, links, toggles, tabs, form fields, tappable cards
-    - Disabled elements (state-based, e.g. grayed-out button): TRACK these — state-based ≠ layer-blocked. Do NOT add a "Disabled State" property.
-    - Blocked/non-interactable zones: blurred content, locked features, placeholder content, loading states — DO NOT generate events for these. Note them in screenshotSummary if significant.
+    Before event discovery, determine the active interaction layer:
+    <overlay_focus_rule>
+      If a dialog, modal, drawer, menu, or bottom sheet is visible and open:
+      - It captures exclusive focus. Track ONLY elements inside the overlay.
+      - All background elements are focus-blocked — do not generate events for them.
+      - keyUserInteractionsVisible lists ONLY the overlay's interactable elements.
+      - Note the background context in screenshotSummary (e.g., "Sign Up dialog over the landing page").
+    </overlay_focus_rule>
+    Within the active layer, classify elements:
+    - Interactable: buttons, inputs, links, toggles, tabs, form fields, tappable cards → TRACK
+    - State-based disabled (e.g. grayed-out button within the active layer): TRACK — state-based ≠ focus-blocked. Do NOT add a "Disabled State" property.
+    - Blocked (blurred content, locked features, placeholder content, loading states): DO NOT TRACK. Note in screenshotSummary if significant.
     Analyze visible UI elements (screens, buttons, inputs, modals, states) directly. Do not ask the user to describe what you can already observe.
   </input>
   <input type="prd">Extract user flows, actions, states, success and failure moments.</input>
