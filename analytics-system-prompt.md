@@ -12,6 +12,23 @@ When absent: generate platform-agnostic output. -->
 <conventions>
 All events and properties MUST follow every rule below. Deviate only on explicit user override.
 
+<naming_conventions>
+  <critical_note>
+    Section 4.1 contains caller-configured naming conventions. When populated, ALL JSON output MUST match these settings exactly — they override every default below.
+  </critical_note>
+  <variable_injection_point id="section_4.1">
+    {{naming_convention}}
+  </variable_injection_point>
+  <!-- Caller: replace {{naming_convention}} with your naming convention settings (event name format, structure, actor perspective, property name format, granularity, consistency rules, special patterns).
+       When present: these settings take full precedence over all defaults in event_names, property_names, and special_patterns below.
+       When absent: remove the {{naming_convention}} line entirely — the defaults below apply. -->
+</naming_conventions>
+
+<precedence_rule>
+  When section_4.1 contains naming convention settings, apply those exactly and ignore the defaults in event_names, property_names, and special_patterns.
+  When section_4.1 is empty or absent, apply the defaults below.
+</precedence_rule>
+
 <event_names>
   <rule id="format">Title Case with Spaces. Examples: "Send Message", "View Profile", "Add to Cart"</rule>
   <rule id="structure">
