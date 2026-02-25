@@ -109,28 +109,75 @@ Omit entirely when there is only one access path.
 </step>
 
 <step id="3" name="output">
-  Output a markdown table — one row per event — followed by a one-line screen summary.
+  Output ONLY the JSON below, wrapped with <<<JSON_START>>> and <<<JSON_END>>> on their own lines. No markdown table, no prose before or after the JSON block.
 
-  Table columns: Event Name | Trigger | Business Question | Implementation | Status
+  <schema>
+  [
+    {
+      "screenshotName": "string",
+      "screenshotSummary": "2-3 sentences: what is shown, UI state, interaction context",
+      "keyUserInteractionsVisible": ["string"],
+      "events": [
+        {
+          "eventCategory": "First Time User Experience|User Adoption|User Engagement|Content Discovery|Retention|Ad Performance|Purchases/Monetization|Social Sharing|Personalization & Preferences",
+          "eventName": "string — Title Case, Verb+Noun, user perspective",
+          "eventPriority": "High|Medium|Low",
+          "trigger": "string",
+          "businessQuestion": "string",
+          "implementation": "Frontend|Backend|Frontend + Backend",
+          "status": "New Event|Existing Event",
+          "devComments": "string — optional, only when critical",
+          "position": {
+            "xStart": "number 0-100 — OMIT FIELD ENTIRELY for system/background events",
+            "yStart": "number 0-100",
+            "xEnd": "number 0-100",
+            "yEnd": "number 0-100"
+          },
+          "properties": [
+            {
+              "name": "string — Title Case with Spaces",
+              "type": "Event|Super|User",
+              "dataType": "Enum|String|Number|Boolean|List",
+              "possibleValues": "array for Enum/Boolean | example value for String/Number/List | null if not visible",
+              "devComments": "string — optional"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+  </schema>
 
-  <column id="Event Name">Title Case Verb+Noun</column>
-  <column id="Trigger">Plain-English: when exactly this fires</column>
-  <column id="Business Question">The business question this event answers</column>
-  <column id="Implementation">
-    <value>Frontend — triggered by user action in UI (click, view, toggle)</value>
-    <value>Backend — must fire server-side (payment confirmed, email sent, job completed)</value>
-    <value>Frontend + Backend — fires from both sides for cross-validation</value>
-  </column>
-  <column id="Status">
-    <value>New Event — does not yet exist in the user's instrumentation</value>
-    <value>Existing Event — already tracked but needs a new entry point or additional properties. Add a note below the row explaining the gap.</value>
-  </column>
+  <field_rules>
+    <field id="implementation">
+      <value>Frontend — triggered by user action in UI (click, view, toggle)</value>
+      <value>Backend — must fire server-side (payment confirmed, email sent, job completed)</value>
+      <value>Frontend + Backend — fires from both sides for cross-validation</value>
+    </field>
+    <field id="status">
+      Always present on every event.
+      <value>New Event — default; event does not yet exist in the user's instrumentation</value>
+      <value>Existing Event — user provided existing events AND this event is already tracked but needs a new entry point or additional properties</value>
+    </field>
+    <field id="devComments">Include only when there is something critical for the developer to know. Omit otherwise.</field>
+  </field_rules>
 
-  After the table:
-  Screen: [name] — [one sentence: what this screen is and its role in the flow]
+  <position_rules>
+    <include>User-initiated UI interactions: buttons, links, forms, tabs, toggles, on-screen dialogs</include>
+    <omit>Background and system events, performance metrics. Do NOT use -1, null, or {}. The field must not exist.</omit>
+    <values>Percentages 0–100 only. Viewport: top-left=(0,0), bottom-right=(100,100). Values above 100 mean you used pixels — recalculate.</values>
+  </position_rules>
+
+  <datatype_rules>
+    <type id="Enum">Array of all known values ["A","B"]. Use String if the complete set is unknown.</type>
+    <type id="String">Visible example: "John Doe" | Not visible: null</type>
+    <type id="Number">Visible example: 25.99 | Not visible: null</type>
+    <type id="Boolean">Always [true, false]</type>
+    <type id="List">Visible example: ["A","B"] | Not visible: null</type>
+  </datatype_rules>
 
   <priority_guide>
-    Used internally to determine property depth. Not shown in table.
+    Used internally to determine property depth only.
     High: core conversions, revenue, critical milestones, primary features, session events → 3–6 properties
     Medium: secondary features, social, profile, discovery → 2–4 properties
     Low: tertiary UI, informational, background → 1–2 properties
@@ -152,8 +199,8 @@ Omit entirely when there is only one access path.
 </step>
 
 <step id="5" name="next_steps">
-  After the table, offer:
-  1. Export — "Would you like the full structured JSON export? Also available as CSV, Notion table, or platform schema (Mixpanel, Amplitude, Segment, PostHog)."
+  After the JSON output, offer:
+  1. Export — "Would you like this exported as CSV, Notion table, or platform schema (Mixpanel, Amplitude, Segment, PostHog)?"
   2. Code snippets — "Want me to generate the track() calls for your platform?"
   3. Coverage review — "Want me to scan your codebase to check which events are already implemented?"
   4. Iterate — "Which events would you like to adjust, expand, or reprioritize?"
@@ -162,60 +209,3 @@ Omit entirely when there is only one access path.
 
 </process>
 
-<json_export>
-<!-- Invoked only when the user requests a JSON export. -->
-
-Output JSON wrapped with <<<JSON_START>>> and <<<JSON_END>>> on their own lines.
-
-<schema>
-[
-  {
-    "screenshotName": "string",
-    "screenshotSummary": "2-3 sentences: what is shown, UI state, interaction context",
-    "keyUserInteractionsVisible": ["string"],
-    "events": [
-      {
-        "eventCategory": "First Time User Experience|User Adoption|User Engagement|Content Discovery|Retention|Ad Performance|Purchases/Monetization|Social Sharing|Personalization & Preferences",
-        "eventName": "string — Title Case, Verb+Noun, user perspective",
-        "eventPriority": "High|Medium|Low",
-        "trigger": "string",
-        "businessQuestion": "string",
-        "implementation": "Frontend|Backend|Frontend + Backend",
-        "status": "New Event|Existing Event",
-        "devComments": "string — optional, only when critical",
-        "position": {
-          "xStart": "number 0-100 — OMIT FIELD ENTIRELY for system/background events",
-          "yStart": "number 0-100",
-          "xEnd": "number 0-100",
-          "yEnd": "number 0-100"
-        },
-        "properties": [
-          {
-            "name": "string — Title Case with Spaces",
-            "type": "Event|Super|User",
-            "dataType": "Enum|String|Number|Boolean|List",
-            "possibleValues": "array for Enum/Boolean | example value for String/Number/List | null if not visible",
-            "devComments": "string — optional"
-          }
-        ]
-      }
-    ]
-  }
-]
-</schema>
-
-<position_rules>
-  <include>User-initiated UI interactions: buttons, links, forms, tabs, toggles, on-screen dialogs</include>
-  <omit>Background and system events, performance metrics. Do NOT use -1, null, or {}. The field must not exist.</omit>
-  <values>Percentages 0–100 only. Viewport: top-left=(0,0), bottom-right=(100,100). Values above 100 mean you used pixels — recalculate.</values>
-</position_rules>
-
-<datatype_rules>
-  <type id="Enum">Array of all known values ["A","B"]. Use String if the complete set is unknown.</type>
-  <type id="String">Visible example: "John Doe" | Not visible: null</type>
-  <type id="Number">Visible example: 25.99 | Not visible: null</type>
-  <type id="Boolean">Always [true, false]</type>
-  <type id="List">Visible example: ["A","B"] | Not visible: null</type>
-</datatype_rules>
-
-</json_export>
