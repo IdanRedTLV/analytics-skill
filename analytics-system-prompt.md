@@ -171,11 +171,22 @@ Omit entirely when there is only one access path.
   <category id="7">Settings and Permissions — preferences or permissions the user can change</category>
   <deduplication>
     For each event candidate, check against TWO sources before including it:
-    1. Other screenshots in the current input: if same element signature (same position region + element type + label text) already produced an event → skip entirely (do not output).
-    2. Existing plan events in conversation history (Scenario A only): compare eventName against already-tracked eventNames.
-       Same screen → relationship="Duplicate" or relationship="Expansion" (if new possibleValues visible).
-       Different screen → relationship="Expansion".
-       No match → relationship="None".
+    1. Other screenshots in the CURRENT INPUT: if the same element signature (same position region + element type + label text) already produced an event in another screenshot within this same analysis run → skip entirely (do not output). Purpose: prevents the same element from appearing twice in the same output.
+    2. Existing plan events in conversation history (Scenario A only — cross-run matching against a PRIOR plan): these events are NEVER skipped. Every element is always output with an explicit relationship value. Use a three-step process:
+
+       Step 1 — Label scan: For each element in the current screenshot, scan ALL events in the prior plan for a matching element visible label (button text, link text, input label). Collect all matches grouped by their source screen (screenshotName in the prior plan).
+
+       Step 2 — Same-screen determination: Identify the prior-plan screen with the highest count of label matches against the current screenshot.
+         If that screen accounts for the majority of label matches (3+ matching elements, or 50%+ of current screenshot's elements) → same-screen mode.
+         Otherwise → different-screen mode (the current screenshot is a new page).
+
+       Step 3 — Relationship assignment and output per element:
+         Same-screen mode, label match, no new possibleValues → relationship="Duplicate". Output: ADOPT the prior plan's exact eventName AND all event properties — full exact copy. NEVER regenerate independently.
+         Same-screen mode, label match, new possibleValues visible → relationship="Expansion". ADOPT the prior plan's exact eventName AND all existing event properties. Add only the new possibleValues to existing properties.
+         Different-screen mode, label match in any prior-plan screen → relationship="Expansion" (new entry point). ADOPT the prior plan's exact eventName AND all existing event properties. Add Entry Point property and any additional possibleValues.
+         No label match anywhere in prior plan → generate new eventName and properties. relationship="None".
+
+       Critical: In Scenario A, NEVER independently generate an event name or properties for a matched element. Always adopt the prior plan's exact eventName and event properties. This applies to both Duplicate and Expansion cases.
   </deduplication>
 </step>
 
@@ -226,7 +237,7 @@ Omit entirely when there is only one access path.
       <value>Frontend + Backend — fires from both sides for cross-validation</value>
     </field>
     <field id="relationship">
-      Always present on every event. Match criterion: eventName must be identical (case-sensitive).
+      Always present on every event. Match criterion: In Scenario A, element visible label is the primary match key across the entire prior plan. The prior plan's eventName is adopted for all matched elements — identical eventName comparison is guaranteed by this name-adoption step. screenshotName similarity is a secondary hint only, not the primary same-screen indicator.
       <value id="None">Event not found in existing plan at all. Output: new event JSON as generated.</value>
       <value id="Duplicate">
         Same eventName + same/similar screen (including different UI states of same screen).
