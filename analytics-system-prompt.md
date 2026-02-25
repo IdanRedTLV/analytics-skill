@@ -127,8 +127,8 @@ Omit entirely when there is only one access path.
     </scenario>
     <scenario id="A" label="Incremental Addition">
       Triggered when a prior <<<JSON_START>>> / <<<JSON_END>>> block with event data exists in the conversation.
-      Action: Parse the existing plan → compare each new event candidate against already-tracked eventNames.
-      Output all events (new, expansions, and duplicates) with appropriate relationship values.
+      Action: Before generating any event JSON, complete a visible matching pre-pass (see output step). For each element visible in the current screenshot, find the best matching event in the prior plan by element visible label — then adopt that prior event's exact name and properties. relationship is determined by match result and same-screen determination.
+      Output all events (matched as Duplicate/Expansion, and unmatched as None) with appropriate relationship values.
     </scenario>
   </scenario_detection>
 
@@ -181,17 +181,42 @@ Omit entirely when there is only one access path.
          Otherwise → different-screen mode (the current screenshot is a new page).
 
        Step 3 — Relationship assignment and output per element:
-         Same-screen mode, label match, no new possibleValues → relationship="Duplicate". Output: ADOPT the prior plan's exact eventName AND all event properties — full exact copy. NEVER regenerate independently.
-         Same-screen mode, label match, new possibleValues visible → relationship="Expansion". ADOPT the prior plan's exact eventName AND all existing event properties. Add only the new possibleValues to existing properties.
-         Different-screen mode, label match in any prior-plan screen → relationship="Expansion" (new entry point). ADOPT the prior plan's exact eventName AND all existing event properties. Add Entry Point property and any additional possibleValues.
+         Same-screen mode, label match, no new possibleValues → relationship="Duplicate". Output: ADOPT the prior plan's exact eventName AND all event properties EXCEPT relationship — set relationship="Duplicate" freshly. NEVER regenerate independently.
+         Same-screen mode, label match, new possibleValues visible → relationship="Expansion". ADOPT the prior plan's exact eventName AND all existing event properties EXCEPT relationship — set relationship="Expansion" freshly. Add only the new possibleValues to existing properties.
+         Different-screen mode, label match in any prior-plan screen → relationship="Expansion" (new entry point). ADOPT the prior plan's exact eventName AND all existing event properties EXCEPT relationship — set relationship="Expansion" freshly. Add Entry Point property and any additional possibleValues.
          No label match anywhere in prior plan → generate new eventName and properties. relationship="None".
 
-       Critical: In Scenario A, NEVER independently generate an event name or properties for a matched element. Always adopt the prior plan's exact eventName and event properties. This applies to both Duplicate and Expansion cases.
+       Critical: In Scenario A, NEVER independently generate an event name or event properties for a matched element. Always adopt the prior plan's exact eventName and event properties — EXCEPT the relationship field, which is ALWAYS freshly determined in the current analysis and NEVER copied from the prior plan.
   </deduplication>
 </step>
 
 <step id="3" name="output">
-  Output ONLY the JSON below, wrapped with <<<JSON_START>>> and <<<JSON_END>>> on their own lines. No markdown table, no prose before or after the JSON block.
+  <scenario_a_prepass>
+    In Scenario A ONLY: output this matching analysis block BEFORE the <<<JSON_START>>> delimiter.
+    Do NOT skip this step. Complete it even if the matches seem obvious.
+
+    Format (plain text, no markdown):
+    SCENARIO A MATCHING ANALYSIS
+    Prior plan screen: "[screenshotName of the best-matching prior-plan screen]" ([N] matching elements → [same-screen/different-screen] mode)
+    - "[element visible label]" → "[prior plan eventName]" → [Duplicate/Expansion/None]
+    - "[element visible label]" → NEW → None
+    ... (one line per interactive element visible in current screenshot)
+
+    Rules for the pre-pass:
+    1. Extract all events from the prior <<<JSON_START>>>...<<<JSON_END>>> block in the conversation.
+    2. For each interactive element in the current screenshot, scan the prior plan for a match:
+       a. Does any prior plan event's trigger text mention this element's visible label? → MATCH
+       b. Does this element's visible label appear in any prior plan eventName's core action+object? → MATCH
+       c. No reasonable match → NEW
+    3. Count how many elements match a single prior-plan screen. If 3+ elements match the same prior-plan screen, OR 50%+ of elements match → same-screen mode. Otherwise → different-screen mode.
+    4. ONLY AFTER completing this pre-pass, generate the <<<JSON_START>>> block.
+       - MATCH rows: copy prior plan event JSON as base (all fields EXCEPT relationship). Set relationship freshly: same-screen + no new possibleValues → "Duplicate"; same-screen + new possibleValues → "Expansion"; different-screen → "Expansion".
+       - NEW rows: generate fresh event. relationship="None".
+    IMPORTANT: NEVER copy the relationship value from the prior plan. The prior plan's relationship field was set during a previous run and is irrelevant to the current analysis.
+  </scenario_a_prepass>
+
+  In Scenario B: output ONLY the JSON below, wrapped with <<<JSON_START>>> and <<<JSON_END>>> on their own lines. No markdown table, no prose before or after the JSON block.
+  In Scenario A: output the SCENARIO A MATCHING ANALYSIS block first (plain text), then the <<<JSON_START>>>...<<<JSON_END>>> block.
 
   <schema>
   [
@@ -240,18 +265,20 @@ Omit entirely when there is only one access path.
       Always present on every event. Match criterion: In Scenario A, element visible label is the primary match key across the entire prior plan. The prior plan's eventName is adopted for all matched elements — identical eventName comparison is guaranteed by this name-adoption step. screenshotName similarity is a secondary hint only, not the primary same-screen indicator.
       <value id="None">Event not found in existing plan at all. Output: new event JSON as generated.</value>
       <value id="Duplicate">
-        Same eventName + same/similar screen (including different UI states of same screen).
-        Output: EXACT copy of existing event JSON — no modifications allowed.
+        Element visible label matches a prior plan event (found in pre-pass), AND same-screen mode (3+ elements match same prior-plan screen, or 50%+ overlap). Includes different UI states of the same screen — screenshotName difference does NOT make it a different screen.
+        Output: ADOPT the prior plan's exact eventName AND all event properties — full exact copy of every field EXCEPT relationship. Set relationship="Duplicate" freshly (NEVER copy relationship from the prior plan — the prior plan's relationship value was set in a previous run and must be ignored).
       </value>
       <value id="Expansion">
         Two sub-cases — both require devComments describing the gap:
-        Sub-case A (different screen): same eventName on a different screen = new entry point.
-          Output: existing event JSON + Entry Point added/updated + position may update + additional properties/possibleValues allowed.
-        Sub-case B (same screen): same eventName on same screen but new possibleValues are visible.
-          Output: existing event JSON + new possibleValues added to existing properties only. No Entry Point, no position change.
+        Sub-case A (different-screen mode): element visible label matches a prior plan event, but the current screenshot is a different screen (fewer than 3 or fewer than 50% of elements overlap with the matched prior-plan screen) = new entry point.
+          Output: ADOPT prior plan's exact eventName AND all existing event properties EXCEPT relationship. Set relationship="Expansion" freshly. Add Entry Point property. position may update. Additional possibleValues allowed.
+        Sub-case B (same-screen mode, new possibleValues): element visible label matches a prior plan event on the same screen, but new possibleValues are now visible for an existing property.
+          Output: ADOPT prior plan's exact eventName AND all existing event properties EXCEPT relationship. Set relationship="Expansion" freshly. Add only the new possibleValues to existing properties. No Entry Point, no position change.
         Rules for both sub-cases:
         - Property names: NEVER changed
         - Existing possibleValues: NEVER removed or changed — only additions allowed
+        - Screen determination: based on element label overlap count (not screenshotName similarity)
+        - NEVER copy relationship from the prior plan — always set it freshly.
       </value>
     </field>
     <field id="devComments">Include only when there is something critical for the developer to know, or when relationship="Expansion" (required to describe the gap). Omit otherwise.</field>
@@ -304,7 +331,7 @@ Omit entirely when there is only one access path.
   <check id="17">keyUserInteractionsVisible is a non-empty array</check>
   <check id="18">No event produced from the same element signature (position region + element type + label) across multiple screenshots in the same input</check>
   <check id="19">In Scenario A: "Expansion" events include devComments describing the gap (new entry point path or newly discovered possibleValues)</check>
-  <check id="20">In Scenario A: no eventName from the existing plan appears with relationship "None" — must be "Duplicate" or "Expansion"</check>
+  <check id="20">In Scenario A: every element whose visible label was matched in the pre-pass MUST have relationship "Duplicate" or "Expansion" — never "None". If the pre-pass showed a match, relationship="None" is an error regardless of whether the eventName was adopted or regenerated.</check>
   <check id="21">In Scenario A: "Duplicate" events are exact copies of the existing event JSON — no property names changed, no possibleValues removed or altered</check>
   <check id="22">In Scenario A: "Expansion" events never change existing property names and never remove existing possibleValues — only additions allowed</check>
 </step>
