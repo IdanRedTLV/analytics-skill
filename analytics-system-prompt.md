@@ -78,9 +78,10 @@ All events and properties MUST follow every rule below. Deviate only on explicit
     Entry: "View [Screen]"
     Exit: "Leave [Screen]" with property Duration(s) for seconds or Duration(m) for minutes
 
-    Engagement-outcome properties: Properties that can only be known AFTER an interaction ends (e.g. Character Count, Word Count, Items Viewed, Scroll Depth) belong on the EXIT/Leave/Close/Submit event — NEVER on the View/Start entry event.
+    Engagement-outcome properties: Properties that capture what the USER PRODUCED during an interaction (e.g. Character Count, Word Count, Items Viewed, Scroll Depth) belong on the EXIT/Leave/Close/Submit event — NEVER on the View/Start entry event.
     Entry events capture context at the moment of arrival only: referrer, plan tier, entry point, initial state.
     Example: "Character Count" on the project description input → put on the Create/Submit action event, not on "Start Project Description".
+    Configuration context properties: Properties that describe the AVAILABLE OPTIONS or BOUNDS of a control (e.g. Min Range, Max Range on a slider; Available Count; Default Value) are NOT engagement-outcome properties. They belong on the action event itself, not on a Leave event.
   </pattern>
 </special_patterns>
 
@@ -103,6 +104,7 @@ All events and properties MUST follow every rule below. Deviate only on explicit
     Last Time [Action] [type=User, dataType=String]
     Total Times [Action] [type=User, dataType=Number]
     Examples: "First Time Purchased", "Last Time Played Song", "Total Times Generated"
+    IMPORTANT: These three User props are ONLY for High priority events. Never add them to Medium or Low priority events.
   </requirement>
   <requirement id="milestones">
     One-time milestones (onboarding, first achievement) use instead:
@@ -140,11 +142,12 @@ Omit entirely when there is only one access path.
   <input type="screenshot">
     Before event discovery, determine the active interaction layer:
     <overlay_focus_rule>
-      If a dialog, modal, drawer, menu, or bottom sheet is visible and open:
+      If a dialog, modal, drawer, menu, bottom sheet, dropdown panel, popover, or settings panel is visible and open:
       - It captures exclusive focus. Track ONLY elements inside the overlay.
       - All background elements are focus-blocked — do not generate events for them.
+      - This applies even when the overlay is partial-screen or attached to a button (e.g., a settings dropdown that doesn't cover the full viewport still captures exclusive focus).
       - keyUserInteractionsVisible lists ONLY the overlay's interactable elements.
-      - Note the background context in screenshotSummary (e.g., "Sign Up dialog over the landing page").
+      - Note the background context in screenshotSummary (e.g., "Run Time Settings panel open over the home page").
     </overlay_focus_rule>
     Within the active layer, classify elements:
     - Interactable: buttons, inputs, links, toggles, tabs, form fields, tappable cards → TRACK
@@ -167,7 +170,7 @@ Omit entirely when there is only one access path.
 <step id="2" name="discover_events">
   Systematically identify events across all 7 categories:
   <category id="1">Screens/Pages — every distinct screen or page the user can land on.
-    View event scope: "View [X]" events are ONLY generated for full pages, dialogs, modals, drawers, bottom sheets, and distinct app states.
+    View event scope: "View [X]" events are ONLY generated for full pages, dialogs, modals, drawers, bottom sheets, dropdown panels, popovers, settings panels, and distinct app states.
     NEVER generate a "View" event for in-page UI components that are rendered as part of a page's content (e.g. carousels, cards, sections, banners, feature rows, example grids). These are impression-style events with low signal-to-noise ratio and are not tracked.
   </category>
   <category id="2">Core Actions — primary interactions driving the feature's purpose</category>
